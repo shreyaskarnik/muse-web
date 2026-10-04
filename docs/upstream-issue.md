@@ -1,14 +1,13 @@
-<!-- Draft for facebookincubator/muse-gadget-sdk. Fill in the Pages URL before posting. -->
 
 # Browser-based installer for the ESP32 firmware (no ESP-IDF needed)
 
 ## Summary
 
-I built a community web installer for the ESP32 Device SDK: **<PAGES_URL>**
+I built a community web installer for the ESP32 Device SDK: **https://shreyaskarnik.github.io/muse-web/**
 
 Pick your board, paste your SDK token, and flash from Chrome or Edge. You don't need ESP-IDF 6.0.1, a toolchain or `menuconfig`, and it works on **Windows**, which the README doesn't currently support ("macOS or Linux"). After flashing, setup is the usual Muse app flow (orange light → Add Device → press BOOT).
 
-Repo: <REPO_URL>. It's the same approach as a web installer I made for zclaw ([tnm/zclaw#14](https://github.com/tnm/zclaw/issues/14)).
+Repo: https://github.com/shreyaskarnik/muse-web. It's the same approach as a web installer I made for zclaw ([tnm/zclaw#14](https://github.com/tnm/zclaw/issues/14)).
 
 ## How it works
 
@@ -26,7 +25,7 @@ The token is compiled into the firmware (`CONFIG_GADGET_SDK_TOKEN`), so a shared
 The token never leaves the page. This works because these builds check app signatures only on OTA (`SECURE_SIGNED_ON_UPDATE_NO_SECURE_BOOT`), not at boot.
 
 Verified so far:
-- Patched images pass `esptool image-info` (checksum + validation hash valid) for the C5 devkit and ideaspark builds.
+- Patched images pass `esptool image-info` (checksum + validation hash valid) for the C5 devkit and ideaspark builds; CI patches every board on each deploy (16/16 currently).
 - A patched ideaspark image boots in ESP-IDF QEMU and logs the substituted token (`link.app: SDK token: mgst_…`). The boot log is otherwise identical to the unpatched build.
 - **Not yet tested on real hardware.** Reports welcome.
 
