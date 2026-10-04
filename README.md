@@ -46,4 +46,7 @@ ESP Web Tools 10.4.0 is vendored in `js/vendor/esp-web-tools/` (Apache-2.0) so t
 ## Status
 
 - Patched images pass ESP-IDF's own image checks for real builds (see tests).
-- **Not yet flashed onto hardware.** If you try it, please open an issue saying which board and whether it reached the orange "ready for setup" light.
+- Port picker, connect and Logs & Console checked on a real ESP32 (CP2102 bridge).
+- Installs always erase the board. Leftover data from other firmware (ESPHome etc.) sits where the SDK keeps its NVS, and the SDK won't wipe it on its own.
+- **Original ESP32 boards need chip revision v3.0+ and 8 MB+ flash.** Plenty of cheap ESP32 DevKits are v1 with 4 MB. They flash fine but the bootloader refuses to start the app (`chip revision check failed`). Check with `esptool flash-id`.
+- **Full flash + pairing not yet confirmed on supported hardware.** If you try it, please open an issue saying which board and whether it reached the orange "ready for setup" light.

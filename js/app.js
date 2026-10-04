@@ -52,7 +52,9 @@ function buildManifest(board, patchedAppUrl) {
   return {
     name: `Muse Gadget (${board.board})`,
     version: board.version,
-    new_install_prompt_erase: true,
+    // Always erase. Without Improv, ESP Web Tools treats every install as new,
+    // and leftover settings from other firmware (e.g. ESPHome) sit where the SDK
+    // keeps its NVS, which it refuses to wipe on its own (config_store.c).
     // The firmware doesn't speak Improv; Wi-Fi is set up from the Muse app over BLE.
     new_install_improv_wait_time: 0,
     builds: [{
