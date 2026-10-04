@@ -27,7 +27,8 @@ The token never leaves the page. This works because these builds check app signa
 Verified so far:
 - Patched images pass `esptool image-info` (checksum + validation hash valid) for the C5 devkit and ideaspark builds; CI patches every board on each deploy (16/16 currently).
 - A patched ideaspark image boots in ESP-IDF QEMU and logs the substituted token (`link.app: SDK token: mgst_…`). The boot log is otherwise identical to the unpatched build.
-- **Not yet tested on real hardware.** Reports welcome.
+- Installed on a real ESP32 from the page, then read back with `esptool read-flash`: the app on the device passes `image-info`, contains the user's token and no placeholder, and differs from the published build only in the token bytes and the checksum/hash trailer.
+- **Not yet confirmed end-to-end (boot + Muse app pairing) on a supported board.** My test board is ESP32 rev v1.0, which the SDK's `REV_MIN_3` rejects at boot. Reports welcome.
 
 ## Proposal: make the token a runtime setting
 
