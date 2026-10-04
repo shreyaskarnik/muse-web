@@ -1,0 +1,10 @@
+{
+  "name": "muse-web",
+  "private": true,
+  "type": "module",
+  "description": "Browser installer for the Muse Gadget SDK ESP32 firmware",
+  "scripts": {
+    "test": "node --test test/",
+    "serve": "python3 -m http.server 8000"
+  }
+}

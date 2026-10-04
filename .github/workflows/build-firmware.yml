@@ -1,0 +1,146 @@
+name: Build firmware and deploy site
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_ref:
+        description: "muse-gadget-sdk git ref to build (branch, tag, or SHA)"
+        required: false
+        default: "main"
+      boards:
+        description: "Space-separated boards to build (blank = every board in upstream CI)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "17 6 * * *" # nightly, to follow upstream main
+  push:
+    branches: [main]
+    paths: ["index.html", "js/**", "css/**", "scripts/**", ".github/workflows/**"]
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  SDK_REPO: https://github.com/facebookincubator/muse-gadget-sdk.git
+  SDK_REF: ${{ github.event.inputs.sdk_ref || 'main' }}
+  # Must equal PLACEHOLDER_TOKEN in js/esp-image.js (checked by `npm test`).
+  PLACEHOLDER_TOKEN: mgst_MUSEWEBPLACEHOLDER000000000000000000000000A
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      sha: ${{ steps.sdk.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone muse-gadget-sdk
+        id: sdk
+        run: |
+          git clone --filter=blob:none "$SDK_REPO" /tmp/sdk
+          git -C /tmp/sdk checkout "$SDK_REF"
+          echo "sha=$(git -C /tmp/sdk rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Read board matrix from upstream CI
+        id: matrix
+        env:
+          BOARDS: ${{ github.event.inputs.boards }}
+        run: |
+          pip install --quiet pyyaml
+          # shellcheck disable=SC2086
+          echo "matrix=$(python3 scripts/upstream_matrix.py /tmp/sdk $BOARDS)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.board }}
+    needs: matrix
+    runs-on: ubuntu-latest
+    container: espressif/idf:v6.0.1
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.matrix.outputs.matrix) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone muse-gadget-sdk
+        env:
+          SHA: ${{ needs.matrix.outputs.sha }}
+        run: |
+          git clone --filter=blob:none "$SDK_REPO" /tmp/sdk
+          git -C /tmp/sdk checkout "$SHA"
+
+      - name: Build
+        working-directory: /tmp/sdk/esp32
+        env:
+          TARGET: ${{ matrix.target }}
+          OVERLAYS: ${{ matrix.overlays }}
+        run: |
+          . "$IDF_PATH/export.sh" > /dev/null
+          printf 'CONFIG_GADGET_SDK_TOKEN="%s"\n' "$PLACEHOLDER_TOKEN" > sdkconfig.museweb
+          idf.py -B build -DIDF_TARGET="$TARGET" -DSDKCONFIG=build/sdkconfig \
+            -DSDKCONFIG_DEFAULTS="sdkconfig.defaults${OVERLAYS};sdkconfig.museweb" build
+
+      - name: Check the app image takes a patched token
+        working-directory: /tmp/sdk/esp32
+        run: |
+          . "$IDF_PATH/export.sh" > /dev/null
+          grep -q "CONFIG_GADGET_SDK_TOKEN=\"$PLACEHOLDER_TOKEN\"" build/sdkconfig
+          # A boot-time signature check would reject the patched app; see README.
+          if grep -q '^CONFIG_SECURE_SIGNED_ON_BOOT=y' build/sdkconfig; then
+            echo "::error::this build verifies app signatures at boot; token patching would brick it"
+            exit 1
+          fi
+
+      - name: Package
+        env:
+          BOARD: ${{ matrix.board }}
+          SHA: ${{ needs.matrix.outputs.sha }}
+        run: python3 scripts/package_board.py /tmp/sdk/esp32/build firmware "$BOARD" "$SHA"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.board }}
+          path: firmware/
+
+  deploy:
+    needs: build
+    # Publish whatever built; one broken board upstream shouldn't take the site down.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download firmware
+        uses: actions/download-artifact@v4
+        with:
+          pattern: firmware-*
+          path: firmware
+          merge-multiple: true
+
+      - name: Index boards and test patching against a real build
+        run: |
+          python3 scripts/index_boards.py firmware
+          FIRMWARE_DIR=firmware npm test
+
+      - name: Assemble site
+        run: |
+          mkdir _site
+          cp -r index.html js css firmware _site/
+
+      - uses: actions/upload-pages-artifact@v3
+      - id: deploy
+        uses: actions/deploy-pages@v4

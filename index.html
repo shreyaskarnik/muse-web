@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Muse Gadget Installer</title>
+  <meta name="description" content="Flash Muse Gadget SDK firmware onto an ESP32 board from your browser. No ESP-IDF needed.">
+  <!-- Nothing on this page may talk to another origin, so the token can't leave it. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; connect-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%234a6cf7%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%276%27 fill=%27%23f59e0b%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/vendor/esp-web-tools/install-button.js"></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <main class="container">
+    <h1>Muse Gadget Installer</h1>
+    <p class="tagline">Flash the <a href="https://github.com/facebookincubator/muse-gadget-sdk/tree/main/esp32">Muse Gadget SDK</a> onto an ESP32 board from your browser. No ESP-IDF needed.</p>
+
+    <ol class="steps">
+      <li>
+        <label for="board">Pick your board</label>
+        <select id="board" disabled>
+          <option>Loading boards…</option>
+        </select>
+        <p class="hint" id="board-info"></p>
+      </li>
+
+      <li>
+        <label for="token">Paste your SDK token</label>
+        <div class="token-row">
+          <input id="token" type="password" autocomplete="off" spellcheck="false"
+                 placeholder="mgst_…" maxlength="48">
+          <button type="button" id="show-token" class="ghost" aria-pressed="false">Show</button>
+        </div>
+        <p class="hint">
+          From <a href="https://gadgets.muse.ai/settings/sdk-tokens" target="_blank" rel="noopener">gadgets.muse.ai → Account → SDK tokens</a>.
+          It's written into the firmware right here in your browser. It isn't uploaded or saved anywhere.
+        </p>
+        <p class="status" id="token-status" role="status"></p>
+      </li>
+
+      <li>
+        <span class="label">Plug in the board over USB and install</span>
+        <esp-web-install-button id="install" hidden>
+          <button slot="activate" class="primary">Install</button>
+          <span slot="unsupported" class="error">
+            Your browser can't talk to USB serial devices. Use Chrome or Edge on a desktop.
+          </span>
+          <span slot="not-allowed" class="error">
+            Serial access is blocked here. Open this page over https or localhost.
+          </span>
+        </esp-web-install-button>
+        <p class="hint" id="install-waiting">Pick a board and paste a valid token first.</p>
+        <p class="hint">
+          If it can't connect, hold <b>BOOT</b>, tap <b>RESET</b>, let go of <b>BOOT</b>, and try again.
+          Reinstalling keeps your pairing and Wi-Fi. Tick "erase" in the installer to start fresh.
+        </p>
+      </li>
+
+      <li>
+        <span class="label">Set it up in the Muse app</span>
+        <p class="hint">
+          When the light breathes <b class="orange">orange</b>, open the Muse app, turn on
+          <b>Settings → Devices → Developer mode</b>, then <b>Add Device</b> (the <b>+</b> icon).
+          Pick <code>MuseGadget-XXXXXX</code>. When the light breathes <b class="blue">blue</b>,
+          press the board's button to confirm.
+        </p>
+      </li>
+    </ol>
+
+    <p class="note">
+      Community project, not made by Meta. Builds come from
+      <a href="https://github.com/facebookincubator/muse-gadget-sdk">muse-gadget-sdk</a>
+      <span id="sdk-ref"></span> using that repo's own board list.
+      Use of your token is covered by the <a href="https://gadgets.muse.ai/sdk-terms">Gadget SDK Terms</a>.
+      Flashing custom firmware can brick boards. Proceed at your own risk.
+    </p>
+  </main>
+</body>
+</html>
